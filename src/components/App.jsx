@@ -1,4 +1,4 @@
-import React, { Component, Fragment } from 'react';
+import React, { useState,useEffect, Fragment, useMemo } from 'react';
 import { Notify } from 'notiflix/build/notiflix-notify-aio';
 import { nanoid } from 'nanoid';
 
@@ -8,68 +8,65 @@ import ContactList from './ContactList/ContactList';
 
 import { Container, Title, SecondTitle } from './App.styled';
 
-class App extends Component {
-state = {
-    contacts: [
-    { id: 'id-1', name: 'Rosie Simpson', number: '459-12-56' },
-    { id: 'id-2', name: 'Hermione Kline', number: '443-89-12' },
-    { id: 'id-3', name: 'Eden Clements', number: '645-17-79' },
-    { id: 'id-4', name: 'Annie Copeland', number: '227-91-26' },
-    ],
-    filter: '',
-};
-onAddContact = ({ name, number }) => {
+function App () {
+    const [contacts, setContacts] = useState(
+    JSON.parse(localStorage.getItem('contacts')) ?? []);
+    const [filter, setFilter] = useState('');
+
+    useEffect(() => {
+        localStorage.setItem('contacts', JSON.stringify(
+            contacts));
+    }, [contacts]);
+
+    const onAddContact = ({ name, number }) => {
     const normalizedName = name.toLowerCase();
     if (
-    this.state.contacts.some(
+    contacts.some(
         contact => contact.name.toLowerCase() === normalizedName
     )
     ) {
     Notify.failure(`${name} is exist already in contacts`);
     return;
     }
-    this.setState(prevState => ({
-    contacts: [
-        ...prevState.contacts,
-        {
-        id: nanoid(),
-        name,
-        number,
-        },
-    ],
-    }));
+    
+    const contact = {
+    id: nanoid(),
+    name,
+    number,
+    };
+    setContacts(prev => [...prev, contact]);
 };
     
-handleDelete = id => {
-    this.setState(prevState => ({
-    contacts: prevState.contacts.filter(contact => contact.id !== id),
-    }));
+const handleDelete = id => {
+   setContacts(contacts => contacts.filter(contact => contact.id !== id));
 };
-handleFilter = e => {
-    this.setState({ filter: e.target.value });
+const handleFilter = e => {
+    setFilter(e.currentTarget.value.trim());
 };
+    
+const filterContacts = useMemo(() => {
+    return contacts.length
+    ? contacts.filter(({ name }) => {
+        return name.toLowerCase().includes(filter.toLowerCase());
+        })
+    : [];
+}, [contacts, filter]);
 
-render() {
-    const { contacts, filter } = this.state;    
-
-    let renderContacts = contacts.filter(({ name }) =>
-    name.toLowerCase().includes(filter.trim())
-    );
+ 
     
     return (
         <Fragment>
             <Container>
                 <Title>Phonebook</Title>                
-                    <FormAddContact onSubmit={this.onAddContact} />                
+                    <FormAddContact onSubmit={onAddContact} />                
                 <SecondTitle>Contacts</SecondTitle>                                   
-                    <Filter handleFilter={this.handleFilter}
+                    <Filter handleFilter={handleFilter}
                     value={filter} />
-                    <ContactList contacts={renderContacts}
-                    handleDelete={this.handleDelete}/>                
+                    <ContactList contacts={filterContacts}
+                    handleDelete={handleDelete}/>                
             </Container>
         </Fragment>
     );
-}
 }
 
 export default App;
